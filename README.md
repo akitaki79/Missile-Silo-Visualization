@@ -21,7 +21,8 @@ You don't need to change any code. See [`data/README.md`](data/README.md) for fi
 frontend/   Vite + React + TypeScript + Tailwind v4 + shadcn/ui + MapLibre
 backend/    Minimal FastAPI app that serves data/bases (3 routes)
 data/bases/ One JSON file per silo field: the only place data lives
-scripts/    make_placeholder_grid.py (regenerates the synthetic Yumen grid)
+scripts/    csv_to_base.py (spreadsheet CSV -> base JSON)
+data/raw/   Original source files (CSV); not read by the app
 render.yaml Render Blueprint (static site + web service)
 ```
 

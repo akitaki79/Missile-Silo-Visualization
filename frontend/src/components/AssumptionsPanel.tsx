@@ -80,7 +80,7 @@ export function AssumptionsPanel({ sim, base, onCollapse }: AssumptionsPanelProp
               {base?.dataStatus === 'placeholder' && (
                 <p className="flex gap-2 rounded-md bg-maroon/8 p-2 text-maroon">
                   <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-                  Placeholder coordinates. These are not real silo locations.
+                  Unverified coordinates. Don't treat them as confirmed silo locations.
                 </p>
               )}
             </CardContent>
