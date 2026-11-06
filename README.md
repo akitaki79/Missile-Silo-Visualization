@@ -4,8 +4,9 @@ A web tool for the Berkeley Risk & Security Lab that illustrates how missile acc
 effects (lethal radius), and salvo size interact against a field of hardened silos. It illustrates
 uncertainty. It does **not** predict real outcomes.
 
-> **Status: Phase 1.** This phase covers scaffolding, the control sidebar, and a map of silo
-> locations. The simulation engine arrives in Phase 2.
+> **Status: Phase 2.** A volley-by-volley simulation and batch Monte Carlo, following
+> Davis & Schilling (1973) and Lawrence (2026). See the in-app **About / Methodology** dialog
+> (book icon in the sidebar header) for what is and isn't modelled.
 
 ## How to add a new base
 
@@ -41,7 +42,13 @@ npm run dev        # http://localhost:5173
 With no `VITE_API_URL` set, the app reads `data/bases/*.json` directly at build time, so no
 backend is needed. After adding a data file, reload the dev server so it picks the file up.
 
-Other scripts: `npm run build`, `npm run lint`, `npm run format`, `npm run preview`.
+Other scripts: `npm test` (Vitest), `npm run build`, `npm run lint`, `npm run format`,
+`npm run preview`.
+
+The tests check the simulation against the papers' worked numbers (SSKP/TKP from Lawrence
+Table 3, Davis & Schilling's 826 / 885 destroyed examples, the 169 m lethal-radius formula), that
+Monte Carlo agrees with the analytic model, kill-rule edge cases, seed reproducibility, and that
+every base file has unique silos at least 1 km apart.
 
 ### Backend (optional)
 
@@ -83,7 +90,12 @@ in the file.
 - **Data access:** `src/api/bases.ts` is the only module that knows where data comes from.
 - **State:** `useSimulatorParams` (one reducer) holds all parameters and map options, and exposes
   `params`, which is fully validated or `null`. `usePanelState` holds the panel UI state separately.
-- **Defaults and presets:** `src/config/defaults.ts`. These are placeholders, not vetted estimates.
+- **Defaults and presets:** `src/config/defaults.ts`. Missile presets and reliabilities are from
+  Lawrence (2026), Tables 1, 3 and 5. Missiles per volley and volleys are placeholders.
+- **Simulation:** `src/sim/` is plain TypeScript with no React. Each module's header cites the paper
+  and the formula it implements. `useSimulation` sequences single runs, and `useBatch` runs Monte
+  Carlo batches in a Web Worker (`sim/batch.worker.ts`). Extension points for fratricide, burst
+  timing, miss distributions, and damage functions are marked `TODO(extension)`.
 
 ## Notes
 
@@ -92,3 +104,7 @@ in the file.
 - **Silo labels** use MapLibre's free demo glyph server (`demotiles.maplibre.org`). It needs no
   key but comes with no uptime guarantee.
 - **TypeScript** is pinned to 6.0 because `typescript-eslint` doesn't support TS 7 yet.
+- **npm 11.5** crashes (`Cannot read properties of null (reading 'edgesOut')`) when *adding*
+  Vitest 4/5, because of a peer-dependency cycle through Vite 8's devtools. Plain `npm install` / `npm ci`
+  from the committed lockfile work fine. To change dev dependencies, use `npx npm@latest install …`.
+- The map is lazy-loaded. Vite still warns about chunk size because MapLibre alone is about 1.1 MB minified.
