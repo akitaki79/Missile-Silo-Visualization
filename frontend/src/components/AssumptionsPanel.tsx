@@ -1,35 +1,66 @@
-import { ChartColumn, PanelRightClose, TriangleAlert } from 'lucide-react'
+import { PanelRightClose, TriangleAlert } from 'lucide-react'
 import { Fragment } from 'react'
 import { PanelHeader } from '@/components/PanelHeader'
 import { PanelSection } from '@/components/PanelSection'
+import { MonteCarloCard } from '@/components/results/MonteCarloCard'
+import { ResultsCard } from '@/components/results/ResultsCard'
 import { RIGHT_SECTIONS } from '@/components/sections'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import type { BatchApi } from '@/hooks/useBatch'
+import type { SimulationApi } from '@/hooks/useSimulation'
 import type { SimulatorParamsApi } from '@/hooks/useSimulatorParams'
-import { sskp } from '@/lib/sskp'
-import type { BaseSummary } from '@/types'
+import { availableWarheads, overallReliability, sskp, tkp } from '@/sim/analytic'
 
 interface AssumptionsPanelProps {
   sim: SimulatorParamsApi
-  base: BaseSummary | undefined
+  simulation: SimulationApi
+  batch: BatchApi
   onCollapse: () => void
 }
 
 const DASH = '—'
 
-export function AssumptionsPanel({ sim, base, onCollapse }: AssumptionsPanelProps) {
-  const { cepM, lethalRadiusM, missilesPerVolley, volleys, reliability } = sim.values
+export function AssumptionsPanel({ sim, simulation, batch, onCollapse }: AssumptionsPanelProps) {
+  const base = sim.summary
+  const {
+    cepM,
+    lethalRadiusM,
+    missilesPerVolley,
+    volleys,
+    deliveryReliability: rDel,
+    warheadReliability: rWh,
+    warheadsPerSilo,
+  } = sim.values
+  const { reprogram, attackerKnowsKills } = sim.state.flags
+
   const rows: [label: string, value: string][] = [
     ['Target base', base?.name ?? DASH],
     ['Silo count', base ? base.siloCount.toLocaleString() : DASH],
+    ['Warheads per silo', warheadsPerSilo?.toString() ?? DASH],
     ['CEP', withUnit(cepM, 'm')],
     ['Lethal radius', withUnit(lethalRadiusM, 'm')],
     ['Missiles per volley', missilesPerVolley?.toLocaleString() ?? DASH],
     ['Volleys', volleys?.toString() ?? DASH],
-    ['Reliability', reliability?.toFixed(2) ?? DASH],
+    ['Delivery reliability (R_del)', rDel?.toFixed(2) ?? DASH],
+    ['Warhead reliability (R_wh)', rWh?.toFixed(2) ?? DASH],
+    [
+      'Overall reliability (OAR)',
+      rDel !== undefined && rWh !== undefined ? overallReliability(rDel, rWh).toFixed(4) : DASH,
+    ],
+    ['Reprogramming (within volley)', reprogram ? 'On' : 'Off'],
+    ['Damage assessment (between)', attackerKnowsKills ? 'Perfect' : 'None'],
   ]
-  const p = cepM && lethalRadiusM ? sskp(lethalRadiusM, cepM) : undefined
+
+  const s = cepM && lethalRadiusM ? sskp(lethalRadiusM, cepM) : undefined
+  const rel =
+    rDel !== undefined && rWh !== undefined
+      ? { deliveryReliability: rDel, warheadReliability: rWh, reprogram }
+      : undefined
+  const t = s !== undefined && rel ? tkp(s, rel) : undefined
+  const a =
+    missilesPerVolley !== undefined && rel ? availableWarheads(missilesPerVolley, rel) : undefined
 
   return (
     <div className="flex h-full flex-col">
@@ -47,7 +78,7 @@ export function AssumptionsPanel({ sim, base, onCollapse }: AssumptionsPanelProp
             {rows.map(([label, value], i) => (
               <Fragment key={label}>
                 {i > 0 && <Separator />}
-                <div className="flex items-baseline justify-between gap-4 py-2">
+                <div className="flex items-baseline justify-between gap-4 py-1.5">
                   <dt className="text-muted-foreground">{label}</dt>
                   <dd className="truncate text-right font-medium tabular-nums">{value}</dd>
                 </div>
@@ -56,17 +87,35 @@ export function AssumptionsPanel({ sim, base, onCollapse }: AssumptionsPanelProp
           </dl>
 
           <div className="mt-4 grid gap-2 rounded-lg border bg-muted/60 p-3 font-mono text-xs">
-            <p className="font-sans eyebrow-muted">Single-shot kill probability</p>
+            <p className="font-sans eyebrow-muted">Reductionist model · Lawrence (2026)</p>
             <p>SSKP = 1 − 0.5^((LR / CEP)²)</p>
-            {p !== undefined && (
-              <p className="text-muted-foreground">
-                = 1 − 0.5^(({lethalRadiusM} / {cepM})²)
+            <p className="text-sm font-semibold text-foreground tabular-nums">
+              = {s === undefined ? DASH : s.toFixed(4)}
+            </p>
+            <p>{reprogram ? 'TKP = R_wh · SSKP' : 'TKP = R_del · R_wh · SSKP'}</p>
+            <p className="text-sm font-semibold text-foreground tabular-nums">
+              = {t === undefined ? DASH : t.toFixed(4)}
+            </p>
+            <p>Pkill(n) = 1 − (1 − TKP)^n</p>
+            <p>x̄ = Σ (1 − Pkill(nᵢ)) + untargeted</p>
+            {reprogram && (
+              <p className="font-sans text-muted-foreground">
+                Reprogramming (Davis &amp; Schilling): A = N · R_del ={' '}
+                <span className="font-mono text-foreground">{a ?? DASH}</span> warheads allocated
+                per volley.
               </p>
             )}
-            <p className="text-base font-semibold text-foreground tabular-nums">
-              = {p === undefined ? DASH : p.toFixed(3)}
-            </p>
           </div>
+        </PanelSection>
+        <Separator />
+
+        <PanelSection section={RIGHT_SECTIONS.results}>
+          <ResultsCard simulation={simulation} base={base} warheadsPerSilo={warheadsPerSilo} />
+        </PanelSection>
+        <Separator />
+
+        <PanelSection section={RIGHT_SECTIONS.monteCarlo}>
+          <MonteCarloCard batch={batch} />
         </PanelSection>
         <Separator />
 
@@ -80,18 +129,10 @@ export function AssumptionsPanel({ sim, base, onCollapse }: AssumptionsPanelProp
               {base?.dataStatus === 'placeholder' && (
                 <p className="flex gap-2 rounded-md bg-maroon/8 p-2 text-maroon">
                   <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-                  Unverified coordinates. Don't treat them as confirmed silo locations.
+                  Unverified coordinates. Don&apos;t treat them as confirmed silo locations.
                 </p>
               )}
             </CardContent>
-          </Card>
-        </PanelSection>
-        <Separator />
-
-        <PanelSection section={RIGHT_SECTIONS.results}>
-          <Card size="sm" className="items-center py-8 text-center text-muted-foreground">
-            <ChartColumn className="size-5" aria-hidden />
-            <p className="text-xs">Run a volley to see results</p>
           </Card>
         </PanelSection>
       </ScrollArea>

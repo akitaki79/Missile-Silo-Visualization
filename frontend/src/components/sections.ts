@@ -1,5 +1,6 @@
 import {
   ChartColumn,
+  ChartNoAxesColumn,
   Crosshair,
   Database,
   Layers,
@@ -30,6 +31,7 @@ export const LEFT_SECTIONS = {
 
 export const RIGHT_SECTIONS = {
   assumptions: { id: 'section-assumptions', title: 'Assumptions', icon: ListChecks },
-  sources: { id: 'section-sources', title: 'Data sources', icon: Database },
   results: { id: 'section-results', title: 'Results', icon: ChartColumn },
+  monteCarlo: { id: 'section-monte-carlo', title: 'Monte Carlo', icon: ChartNoAxesColumn },
+  sources: { id: 'section-sources', title: 'Data sources', icon: Database },
 } satisfies Record<string, SectionDef>
