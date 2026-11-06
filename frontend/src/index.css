@@ -1,0 +1,141 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * THEME — the single place to restyle the app.
+ * shadcn components read the standard variables below; app-specific
+ * colours (maroon accent, map paint colours) live alongside them.
+ * Light mode only for now.
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: #f7f6f3; /* warm off-white */
+  --foreground: #1c1b19; /* near-black */
+  --card: #fdfcfa;
+  --card-foreground: #1c1b19;
+  --popover: #ffffff;
+  --popover-foreground: #1c1b19;
+
+  --primary: #3f6b6e; /* muted dark teal — main actions */
+  --primary-foreground: #f7f6f3;
+  --secondary: #eeebe5;
+  --secondary-foreground: #1c1b19;
+  --muted: #eeebe5;
+  --muted-foreground: #6f6a62;
+  /* shadcn uses --accent for hover states, so it stays a neutral warm tint. */
+  --accent: #ebe7e0;
+  --accent-foreground: #1c1b19;
+  --destructive: #b42318;
+
+  --border: #e2ddd4; /* thin warm gray */
+  --input: #d8d2c7;
+  --ring: #3f6b6e;
+
+  /* Brand accent: eyebrow text + selected state of presets / toggle items. */
+  --maroon: #7a2e2e;
+  --maroon-foreground: #fdf7f6;
+
+  /* Map paint colours (read by MapView at runtime). */
+  --map-silo: #2c4f52;
+  --map-silo-stroke: #f7f6f3;
+  --map-ring: #3f6b6e;
+  --map-label: #1c1b19;
+  --map-label-halo: #f7f6f3;
+
+  --chart-1: #3f6b6e;
+  --chart-2: #7a2e2e;
+  --chart-3: #8a8378;
+  --chart-4: #b9a98f;
+  --chart-5: #2c4f52;
+
+  --sidebar: #f7f6f3;
+  --sidebar-foreground: #1c1b19;
+  --sidebar-primary: #3f6b6e;
+  --sidebar-primary-foreground: #f7f6f3;
+  --sidebar-accent: #ebe7e0;
+  --sidebar-accent-foreground: #1c1b19;
+  --sidebar-border: #e2ddd4;
+  --sidebar-ring: #3f6b6e;
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --color-maroon: var(--maroon);
+  --color-maroon-foreground: var(--maroon-foreground);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  /* Small uppercase tracked label, e.g. "RESEARCH TOOL". */
+  .eyebrow {
+    @apply text-[0.6875rem] font-semibold tracking-[0.12em] text-maroon uppercase;
+  }
+  /* Same shape, muted — for stat/field labels. */
+  .eyebrow-muted {
+    @apply text-[0.6875rem] font-medium tracking-[0.1em] text-muted-foreground uppercase;
+  }
+  /* Selected state shared by preset cards and toggle-group items. */
+  .selected-maroon {
+    @apply border-maroon bg-maroon/8 text-maroon;
+  }
+}

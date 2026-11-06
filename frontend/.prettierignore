@@ -1,0 +1,4 @@
+dist
+node_modules
+# shadcn-generated; managed by `npx shadcn add`, not hand-edited
+src/components/ui
