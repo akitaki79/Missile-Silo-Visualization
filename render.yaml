@@ -1,0 +1,34 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# First deploy: Render prompts for the two `sync: false` values below.
+#   CORS_ORIGINS  = the static site's URL, e.g. https://counterforce-sim.onrender.com
+#   VITE_API_URL  = the API's URL,         e.g. https://counterforce-sim-api.onrender.com
+# (Leave VITE_API_URL empty to have the frontend read data/bases at build time instead.)
+# Both services build from the repo root, so the backend can see /data.
+
+services:
+  - type: web
+    name: counterforce-sim-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn main:app --app-dir backend --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      - key: DATA_DIR
+        value: data/bases
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: counterforce-sim
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        sync: false
