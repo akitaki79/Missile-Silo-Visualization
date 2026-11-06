@@ -33,25 +33,25 @@ export function TargetSection({ summaries, error, baseId, onChange }: TargetSect
         </SelectTrigger>
         <SelectContent position="popper">
           {summaries?.map((b) => (
+            // SelectValue mirrors the item's content, so the badge also shows in the
+            // closed trigger whenever a placeholder base is selected.
             <SelectItem key={b.id} value={b.id}>
               {b.name}
               <span className="text-muted-foreground">· {b.country}</span>
+              {b.dataStatus === 'placeholder' && (
+                <Badge variant="outline" className="border-maroon/40 text-maroon">
+                  Placeholder data
+                </Badge>
+              )}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       {selected && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="tabular-nums">
-            {selected.country} · {selected.siloCount.toLocaleString()} silos
-          </span>
-          {selected.dataStatus === 'placeholder' && (
-            <Badge variant="outline" className="border-maroon/40 text-maroon">
-              Placeholder data
-            </Badge>
-          )}
-        </div>
+        <p className="mt-2.5 text-xs text-muted-foreground tabular-nums">
+          {selected.country} · {selected.siloCount.toLocaleString()} silos
+        </p>
       )}
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
       {empty && (
