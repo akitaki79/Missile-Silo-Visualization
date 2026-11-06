@@ -1,4 +1,5 @@
-import type { StyleSpecification } from 'maplibre-gl'
+import circle from '@turf/circle'
+import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Map, {
   Layer,
@@ -9,8 +10,16 @@ import Map, {
   type MapRef,
 } from 'react-map-gl/maplibre'
 import { MapControls } from '@/components/map/MapControls'
-import { BASEMAPS, FIT_PADDING, GLYPHS_URL, LABEL_FONT } from '@/config/defaults'
-import { bounds, lethalRings, silosToGeoJSON } from '@/lib/geo'
+import { MapLegend } from '@/components/map/MapLegend'
+import {
+  BASEMAPS,
+  FIT_PADDING,
+  GLYPHS_URL,
+  LABEL_FONT,
+  VOLLEY_COLOR_SLOTS,
+} from '@/config/defaults'
+import type { DisplayImpact, SiloDisplayState } from '@/hooks/useSimulation'
+import { bounds, distanceM, impactsToGeoJSON, lethalRings, silosToGeoJSON } from '@/lib/geo'
 import { maplibregl } from '@/lib/maplibre'
 import { cn } from '@/lib/utils'
 import type { Base, BasemapId, MapOptions } from '@/types'
@@ -20,17 +29,22 @@ interface MapViewProps {
   /** Parsed lethal radius; undefined while the input is invalid (rings hidden). */
   lethalRadiusM?: number
   options: MapOptions
+  /** Per-silo simulation state (index-aligned with base.silos); null before a run. */
+  siloStates: SiloDisplayState[] | null
+  impacts: DisplayImpact[]
+  /** Lethal radius the current run used, for the impact hover ring. */
+  runLethalRadiusM?: number
+  /** Number of volleys with impacts on screen, for the legend. */
+  volleysShown: number
   /** Bump to make the map re-measure its container (after panel transitions). */
   resizeSignal: number
   /** Overlays rendered above the map, e.g. the stats strip. */
   children?: ReactNode
 }
 
-interface HoveredSilo {
-  id: string
-  lat: number
-  lon: number
-}
+type Hovered =
+  | { kind: 'silo'; id: string; lat: number; lon: number; state: string }
+  | { kind: 'impact'; impact: DisplayImpact }
 
 const BASEMAP_IDS = Object.keys(BASEMAPS) as BasemapId[]
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
@@ -39,11 +53,26 @@ const FIT_OPTIONS = {
   padding: { top: FIT_PADDING + 48, bottom: FIT_PADDING, left: FIT_PADDING, right: FIT_PADDING },
   maxZoom: 13,
 }
+const SILO_STATE_LABEL: Record<string, string> = {
+  intact: 'Intact',
+  destroyed: 'Destroyed',
+  untargeted: 'Intact · not targeted this volley',
+}
 
-export function MapView({ base, lethalRadiusM, options, resizeSignal, children }: MapViewProps) {
+export function MapView({
+  base,
+  lethalRadiusM,
+  options,
+  siloStates,
+  impacts,
+  runLethalRadiusM,
+  volleysShown,
+  resizeSignal,
+  children,
+}: MapViewProps) {
   const mapRef = useRef<MapRef>(null)
   const [ready, setReady] = useState(false)
-  const [hovered, setHovered] = useState<HoveredSilo | null>(null)
+  const [hovered, setHovered] = useState<Hovered | null>(null)
   const [bearing, setBearing] = useState(0)
   const colors = useThemeColors()
 
@@ -109,17 +138,84 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
     mapRef.current?.resize()
   }, [resizeSignal])
 
-  const silos = useMemo(() => (base ? silosToGeoJSON(base.silos) : EMPTY_FC), [base])
+  const silos = useMemo(
+    () => (base ? silosToGeoJSON(base.silos, siloStates) : EMPTY_FC),
+    [base, siloStates],
+  )
   const showRings = options.showRings && lethalRadiusM !== undefined
   const rings = useMemo(
     () => (base && showRings ? lethalRings(base.silos, lethalRadiusM) : EMPTY_FC),
     [base, showRings, lethalRadiusM],
   )
+  const impactsFc = useMemo(
+    () => (options.showImpacts ? impactsToGeoJSON(impacts, VOLLEY_COLOR_SLOTS) : EMPTY_FC),
+    [impacts, options.showImpacts],
+  )
+  const impactByKey = useMemo(() => new globalThis.Map(impacts.map((m) => [m.key, m])), [impacts])
 
-  const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
-    const props = e.features?.[0]?.properties as HoveredSilo | undefined
-    setHovered((prev) => (props?.id === prev?.id ? prev : (props ?? null)))
-  }, [])
+  // Hovering an impact: its lethal-radius circle and a line back to its aim point.
+  const hoverImpact = hovered?.kind === 'impact' ? hovered.impact : null
+  const hoverGeometry = useMemo<GeoJSON.FeatureCollection>(() => {
+    if (!hoverImpact) return EMPTY_FC
+    const features: GeoJSON.Feature[] = [
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [hoverImpact.lon, hoverImpact.lat],
+            [hoverImpact.aimLon, hoverImpact.aimLat],
+          ],
+        },
+      },
+    ]
+    if (runLethalRadiusM)
+      features.push(
+        circle([hoverImpact.lon, hoverImpact.lat], runLethalRadiusM / 1000, {
+          steps: 64,
+          units: 'kilometers',
+        }),
+      )
+    return { type: 'FeatureCollection', features }
+  }, [hoverImpact, runLethalRadiusM])
+
+  const onMouseMove = useCallback(
+    (e: MapLayerMouseEvent) => {
+      const f = e.features?.[0]
+      if (!f) return setHovered(null)
+      if (f.layer.id === 'impacts-circle') {
+        const impact = impactByKey.get(String(f.properties.key))
+        setHovered((prev) =>
+          prev?.kind === 'impact' && prev.impact.key === impact?.key
+            ? prev
+            : impact
+              ? { kind: 'impact', impact }
+              : null,
+        )
+      } else {
+        const p = f.properties as { id: string; lat: number; lon: number; state: string }
+        setHovered((prev) =>
+          prev?.kind === 'silo' && prev.id === p.id && prev.state === p.state
+            ? prev
+            : { kind: 'silo', ...p },
+        )
+      }
+    },
+    [impactByKey],
+  )
+
+  const volleyColor: ExpressionSpecification = [
+    'match',
+    ['get', 'slot'],
+    1,
+    colors.viz1,
+    2,
+    colors.viz2,
+    3,
+    colors.viz3,
+    colors.vizOther,
+  ]
 
   return (
     <div
@@ -132,7 +228,7 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
         initialViewState={{ longitude: 0, latitude: 20, zoom: 1.5 }}
         onLoad={() => setReady(true)}
         onRotate={(e) => setBearing(e.viewState.bearing)}
-        interactiveLayerIds={['silos-circle']}
+        interactiveLayerIds={['impacts-circle', 'silos-circle']}
         onMouseMove={onMouseMove}
         onMouseLeave={() => setHovered(null)}
         cursor={hovered ? 'pointer' : 'grab'}
@@ -158,7 +254,15 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
             id="silos-circle"
             type="circle"
             paint={{
-              'circle-color': colors.silo,
+              'circle-color': [
+                'match',
+                ['get', 'state'],
+                'destroyed',
+                colors.siloDestroyed,
+                'untargeted',
+                colors.siloUntargeted,
+                colors.silo,
+              ],
               'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2.5, 10, 4.5, 14, 7],
               'circle-stroke-color': colors.siloStroke,
               'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 6, 0.5, 12, 1.5],
@@ -184,7 +288,35 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
           />
         </Source>
 
-        {hovered && (
+        <Source id="impact-hover" type="geojson" data={hoverGeometry}>
+          <Layer
+            id="impact-hover-fill"
+            type="fill"
+            filter={['==', ['geometry-type'], 'Polygon']}
+            paint={{ 'fill-color': colors.label, 'fill-opacity': 0.08 }}
+          />
+          <Layer
+            id="impact-hover-lines"
+            type="line"
+            paint={{ 'line-color': colors.label, 'line-width': 1.5, 'line-dasharray': [2, 1.5] }}
+          />
+        </Source>
+
+        <Source id="impacts" type="geojson" data={impactsFc}>
+          <Layer
+            id="impacts-circle"
+            type="circle"
+            paint={{
+              // Duds (warhead failures) are hollow; detonations are filled.
+              'circle-color': ['case', ['get', 'dud'], 'rgba(0,0,0,0)', volleyColor],
+              'circle-stroke-color': ['case', ['get', 'dud'], volleyColor, colors.siloStroke],
+              'circle-stroke-width': ['case', ['get', 'dud'], 1.5, 0.75],
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 1.5, 10, 2.5, 14, 4.5],
+            }}
+          />
+        </Source>
+
+        {hovered?.kind === 'silo' && (
           <Popup
             longitude={hovered.lon}
             latitude={hovered.lat}
@@ -194,8 +326,39 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
             closeOnClick={false}
           >
             <p className="text-sm font-semibold">{hovered.id}</p>
+            {siloStates && (
+              <p className="text-xs">{SILO_STATE_LABEL[hovered.state] ?? hovered.state}</p>
+            )}
             <p className="text-xs text-muted-foreground tabular-nums">
               {hovered.lat.toFixed(5)}°, {hovered.lon.toFixed(5)}°
+            </p>
+          </Popup>
+        )}
+        {hoverImpact && (
+          <Popup
+            longitude={hoverImpact.lon}
+            latitude={hoverImpact.lat}
+            anchor="bottom"
+            offset={10}
+            closeButton={false}
+            closeOnClick={false}
+          >
+            <p className="text-sm font-semibold">
+              Volley {hoverImpact.volley} · aimed at {hoverImpact.aimId}
+            </p>
+            <p className="text-xs tabular-nums">
+              Miss distance{' '}
+              {Math.round(
+                distanceM(hoverImpact, { lat: hoverImpact.aimLat, lon: hoverImpact.aimLon }),
+              )}{' '}
+              m
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {hoverImpact.dud
+                ? 'Warhead failure: landed, did not detonate'
+                : hoverImpact.killedIds.length
+                  ? `Destroyed ${hoverImpact.killedIds.join(', ')}`
+                  : 'Detonated, no silo within lethal radius'}
             </p>
           </Popup>
         )}
@@ -208,6 +371,10 @@ export function MapView({ base, lethalRadiusM, options, resizeSignal, children }
         onFit={() => fitToBase()}
         canFit={base !== null}
         bearing={bearing}
+      />
+      <MapLegend
+        showSimStates={siloStates !== null}
+        volleys={options.showImpacts ? volleysShown : 0}
       />
       {children}
     </div>
@@ -222,10 +389,16 @@ function useThemeColors() {
     return {
       background: v('--background'),
       silo: v('--map-silo'),
+      siloDestroyed: v('--map-silo-destroyed'),
+      siloUntargeted: v('--map-silo-untargeted'),
       siloStroke: v('--map-silo-stroke'),
       ring: v('--map-ring'),
       label: v('--map-label'),
       labelHalo: v('--map-label-halo'),
+      viz1: v('--viz-1'),
+      viz2: v('--viz-2'),
+      viz3: v('--viz-3'),
+      vizOther: v('--viz-other'),
     }
   }, [])
 }

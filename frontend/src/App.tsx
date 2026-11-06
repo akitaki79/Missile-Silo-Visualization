@@ -1,39 +1,39 @@
-import { useReducer } from 'react'
-import { toast } from 'sonner'
+import { lazy, Suspense, useReducer } from 'react'
 import { AppShell } from '@/components/AppShell'
 import { AssumptionsPanel } from '@/components/AssumptionsPanel'
-import { MapView } from '@/components/map/MapView'
 import { StatsStrip } from '@/components/map/StatsStrip'
+import { MethodologyDialog } from '@/components/MethodologyDialog'
 import { LEFT_SECTIONS, RIGHT_SECTIONS } from '@/components/sections'
 import { Sidebar } from '@/components/Sidebar'
+import { ActionBar } from '@/components/sidebar/ActionBar'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useBase, useBaseList } from '@/hooks/useBases'
+import { useBatch } from '@/hooks/useBatch'
 import { usePanelState } from '@/hooks/usePanelState'
+import { useSimulation } from '@/hooks/useSimulation'
 import { useSimulatorParams } from '@/hooks/useSimulatorParams'
+
+// MapLibre is most of the bundle; load it in its own chunk so the controls render first.
+const MapView = lazy(() => import('@/components/map/MapView').then((m) => ({ default: m.MapView })))
 
 export default function App() {
   const baseList = useBaseList()
-  const sim = useSimulatorParams(baseList.summaries?.[0]?.id ?? null)
+  const sim = useSimulatorParams(baseList.summaries)
   const { base } = useBase(sim.baseId)
+  const simulation = useSimulation(base, sim.params, sim.runKey)
+  const batch = useBatch(sim.runKey)
   const panels = usePanelState()
   const [resizeSignal, bumpResize] = useReducer((n: number) => n + 1, 0)
 
-  const summary = baseList.summaries?.find((b) => b.id === sim.baseId)
-  const { cepM, lethalRadiusM, volleys } = sim.values
+  const { summary } = sim
+  const { cepM, lethalRadiusM, volleys, warheadsPerSilo } = sim.values
+  const canRun = sim.params !== null && base !== null
+  const last = simulation.shown[simulation.shown.length - 1]
+  const surviving = last?.surviving ?? summary?.siloCount
 
-  // Phase 2: replace with the simulation engine.
-  function handleRun() {
-    if (!sim.params) return
-    console.info('[sim] Run volley 1 with params:', sim.params)
-    toast('Simulation coming in Phase 2', {
-      description: 'Current parameters were logged to the console.',
-    })
-  }
-
-  function handleReset() {
-    sim.actions.resetParams()
-    toast('Parameters reset to defaults')
+  function handleRunTrials() {
+    if (base && sim.params && sim.runKey) batch.run(base, sim.params, sim.runKey)
   }
 
   return (
@@ -50,8 +50,18 @@ export default function App() {
               summaries={baseList.summaries}
               summariesError={baseList.error}
               onCollapse={() => panels.setOpen('left', false)}
-              onRun={handleRun}
-              onReset={handleReset}
+              headerActions={<MethodologyDialog />}
+              footer={
+                <ActionBar
+                  simulation={simulation}
+                  batch={batch}
+                  canRun={canRun}
+                  trials={sim.values.trials}
+                  onFire={simulation.fire}
+                  onReset={simulation.reset}
+                  onRunTrials={handleRunTrials}
+                />
+              }
             />
           ),
         }}
@@ -61,31 +71,60 @@ export default function App() {
           content: (
             <AssumptionsPanel
               sim={sim}
-              base={summary}
+              simulation={simulation}
+              batch={batch}
               onCollapse={() => panels.setOpen('right', false)}
             />
           ),
         }}
       >
-        <MapView
-          base={base}
-          lethalRadiusM={lethalRadiusM}
-          options={sim.state.map}
-          resizeSignal={resizeSignal}
+        <Suspense
+          fallback={
+            <div className="grid size-full place-items-center bg-muted text-sm text-muted-foreground">
+              Loading map…
+            </div>
+          }
         >
-          <StatsStrip
-            cells={[
-              { label: 'Base', value: summary?.name ?? '—' },
-              { label: 'Silos', value: summary?.siloCount.toLocaleString() ?? '—' },
-              { label: 'CEP', value: cepM === undefined ? '—' : `${cepM} m` },
-              {
-                label: 'Lethal radius',
-                value: lethalRadiusM === undefined ? '—' : `${lethalRadiusM} m`,
-              },
-              { label: 'Volley', value: `— / ${volleys ?? '—'}` },
-            ]}
-          />
-        </MapView>
+          <MapView
+            base={base}
+            lethalRadiusM={lethalRadiusM}
+            options={sim.state.map}
+            siloStates={simulation.siloStates}
+            impacts={simulation.impacts}
+            runLethalRadiusM={simulation.sim?.params.lethalRadiusM}
+            volleysShown={simulation.impacts.reduce((m, i) => Math.max(m, i.volley), 0)}
+            resizeSignal={resizeSignal}
+          >
+            <StatsStrip
+              cells={[
+                { label: 'Base', value: summary?.name ?? '—' },
+                { label: 'CEP', value: cepM === undefined ? '—' : `${cepM} m` },
+                {
+                  label: 'Lethal radius',
+                  value: lethalRadiusM === undefined ? '—' : `${lethalRadiusM} m`,
+                },
+                {
+                  label: 'Volley',
+                  value: `${last?.volley ?? '—'} / ${simulation.sim?.params.volleys ?? volleys ?? '—'}`,
+                },
+                {
+                  label: 'Surviving',
+                  value:
+                    surviving === undefined
+                      ? '—'
+                      : `${surviving.toLocaleString()} / ${summary?.siloCount.toLocaleString()}`,
+                },
+                {
+                  label: 'Warheads',
+                  value:
+                    surviving === undefined || warheadsPerSilo === undefined
+                      ? '—'
+                      : (surviving * warheadsPerSilo).toLocaleString(),
+                },
+              ]}
+            />
+          </MapView>
+        </Suspense>
       </AppShell>
       {/* Light theme only for now; pinned so the OS dark mode doesn't restyle toasts. */}
       <Toaster theme="light" position="bottom-center" />

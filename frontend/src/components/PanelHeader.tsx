@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,8 @@ interface PanelHeaderProps {
   onCollapse: () => void
   /** Larger title for the main (left) panel. */
   size?: 'lg' | 'md'
+  /** Extra header buttons, shown before the collapse button. */
+  actions?: ReactNode
 }
 
 export function PanelHeader({
@@ -22,6 +25,7 @@ export function PanelHeader({
   shortcut,
   onCollapse,
   size = 'md',
+  actions,
 }: PanelHeaderProps) {
   return (
     <header className="flex items-start gap-3 border-b px-5 pt-5 pb-4">
@@ -36,6 +40,7 @@ export function PanelHeader({
           {title}
         </h1>
       </div>
+      {actions}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label={collapseLabel}>
