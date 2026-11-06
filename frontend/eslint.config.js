@@ -20,6 +20,11 @@ export default defineConfig([
     languageOptions: { globals: globals.browser },
   },
   {
+    // Tests index into known fixtures; `!` there is clearer than guards.
+    files: ['src/**/__tests__/**'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
+  {
     // shadcn-generated files export variants alongside components by design.
     files: ['src/components/ui/**'],
     rules: { 'react-refresh/only-export-components': 'off' },
