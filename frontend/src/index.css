@@ -42,11 +42,23 @@
   --maroon-foreground: #fdf7f6;
 
   /* Map paint colours (read by MapView at runtime). */
-  --map-silo: #2c4f52;
+  --map-silo: #2c4f52; /* intact */
+  --map-silo-destroyed: #b42318;
+  --map-silo-untargeted: #a39e95;
   --map-silo-stroke: #f7f6f3;
   --map-ring: #3f6b6e;
   --map-label: #1c1b19;
   --map-label-halo: #f7f6f3;
+
+  /*
+   * Data-viz categorical slots (validated: CVD all-pairs, light surface). Used for
+   * volleys on the map and the series in results charts; fixed order, never cycled.
+   * --viz-other is the fold-in colour for volley 4+.
+   */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-other: #8a857c;
 
   --chart-1: #3f6b6e;
   --chart-2: #7a2e2e;
@@ -70,6 +82,13 @@
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --color-maroon: var(--maroon);
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
+  --color-viz-3: var(--viz-3);
+  --color-viz-other: var(--viz-other);
+  --color-map-silo: var(--map-silo);
+  --color-map-silo-destroyed: var(--map-silo-destroyed);
+  --color-map-silo-untargeted: var(--map-silo-untargeted);
   --color-maroon-foreground: var(--maroon-foreground);
 
   --color-sidebar-ring: var(--sidebar-ring);

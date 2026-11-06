@@ -66,6 +66,7 @@ def list_bases() -> list[dict[str, Any]]:
                 "dataStatus": base.get("dataStatus", "placeholder"),
                 "source": base.get("source", ""),
                 "siloCount": len(base["silos"]),
+                "warheadsPerSilo": base.get("warheadsPerSilo"),
             }
         )
     return summaries

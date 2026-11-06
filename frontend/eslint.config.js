@@ -18,6 +18,10 @@ export default defineConfig([
       prettier,
     ],
     languageOptions: { globals: globals.browser },
+    rules: {
+      // Allow `const { omitted: _x, ...rest } = obj` for dropping keys.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
   },
   {
     // Tests index into known fixtures; `!` there is clearer than guards.

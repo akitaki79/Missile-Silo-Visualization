@@ -10,6 +10,7 @@ import type { BasemapId, MapOptions } from '@/types'
 const CHECKBOXES: { key: Exclude<keyof MapOptions, 'basemap'>; label: string }[] = [
   { key: 'showLabels', label: 'Show silo labels' },
   { key: 'showRings', label: 'Show lethal radius rings' },
+  { key: 'showImpacts', label: 'Show impacts' },
   { key: 'greyscale', label: 'Greyscale figure mode' },
 ]
 

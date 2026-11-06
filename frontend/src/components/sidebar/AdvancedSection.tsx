@@ -9,12 +9,28 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Label } from '@/components/ui/label'
 import type { SimulatorParamsApi } from '@/hooks/useSimulatorParams'
 import { cn } from '@/lib/utils'
+import type { SimFlag } from '@/types'
+
+const FLAGS: { flag: SimFlag; label: string; scope: string; hint: string }[] = [
+  {
+    flag: 'reprogram',
+    label: 'Reprogram detected boost failures',
+    scope: 'Within a volley',
+    hint: 'Boost failures are replaced from reserves before allocation (Davis & Schilling). TKP becomes SSKP · R_wh.',
+  },
+  {
+    flag: 'attackerKnowsKills',
+    label: 'Attacker knows which silos were destroyed',
+    scope: 'Between volleys',
+    hint: 'Perfect damage assessment: later volleys target only surviving silos.',
+  },
+]
 
 export function AdvancedSection({ sim }: { sim: SimulatorParamsApi }) {
-  const { state, errors, actions } = sim
+  const { inputs, errors, state, actions } = sim
   const [userOpen, setUserOpen] = useState(false)
   // Never hide an invalid field behind a collapsed section.
-  const hasError = Boolean(errors.reliability ?? errors.seed)
+  const hasError = Boolean(errors.seed ?? errors.warheadsPerSilo ?? errors.trials)
   const open = userOpen || hasError
   const Icon = LEFT_SECTIONS.advanced.icon
 
@@ -42,38 +58,48 @@ export function AdvancedSection({ sim }: { sim: SimulatorParamsApi }) {
         }
       >
         <CollapsibleContent className="grid gap-4 pt-4">
+          {FLAGS.map(({ flag, label, scope, hint }) => (
+            <div key={flag} className="flex items-start gap-2.5">
+              <Checkbox
+                id={`flag-${flag}`}
+                checked={state.flags[flag]}
+                onCheckedChange={(c) => actions.setFlag(flag, c === true)}
+                className="mt-0.5"
+              />
+              <div className="grid gap-1">
+                <p className="eyebrow-muted">{scope}</p>
+                <Label htmlFor={`flag-${flag}`} className="text-sm leading-snug font-normal">
+                  {label}
+                </Label>
+                <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>
+              </div>
+            </div>
+          ))}
           <div className="grid grid-cols-2 items-start gap-3">
             <UnitInput
-              label="Warhead reliability"
-              value={state.inputs.reliability}
-              onChange={(v) => actions.setInput('reliability', v)}
-              error={errors.reliability}
-              hint="0–1; 1.0 = all function"
+              label="Warheads per silo"
+              inputMode="numeric"
+              value={inputs.warheadsPerSilo}
+              onChange={(v) => actions.setInput('warheadsPerSilo', v)}
+              error={errors.warheadsPerSilo}
+              hint="Default from base data"
             />
             <UnitInput
               label="RNG seed"
               inputMode="numeric"
-              value={state.inputs.seed}
+              value={inputs.seed}
               onChange={(v) => actions.setInput('seed', v)}
               error={errors.seed}
               hint="Same seed, same run"
             />
-          </div>
-          <div className="flex items-start gap-2.5">
-            <Checkbox
-              id="attacker-knows-kills"
-              checked={state.attackerKnowsKills}
-              onCheckedChange={(c) => actions.setAttackerKnowsKills(c === true)}
-              className="mt-0.5"
+            <UnitInput
+              label="Monte Carlo trials"
+              inputMode="numeric"
+              value={inputs.trials}
+              onChange={(v) => actions.setInput('trials', v)}
+              error={errors.trials}
+              hint="For “Run N trials”"
             />
-            <div className="grid gap-1">
-              <Label htmlFor="attacker-knows-kills" className="text-sm leading-snug font-normal">
-                Attacker knows which silos were destroyed
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Later volleys re-target only surviving silos.
-              </p>
-            </div>
           </div>
         </CollapsibleContent>
       </PanelSection>

@@ -73,12 +73,14 @@ function parseBase(raw: unknown): Base | null {
   }
   if (silos.length === 0) return null
   const dataStatus: DataStatus = raw.dataStatus === 'verified' ? 'verified' : 'placeholder'
+  const w = raw.warheadsPerSilo
   return {
     id: raw.id,
     name: typeof raw.name === 'string' ? raw.name : raw.id,
     country: typeof raw.country === 'string' ? raw.country : '',
     dataStatus,
     source: typeof raw.source === 'string' ? raw.source : '',
+    ...(typeof w === 'number' && Number.isInteger(w) && w > 0 ? { warheadsPerSilo: w } : {}),
     silos,
   }
 }
