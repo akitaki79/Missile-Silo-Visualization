@@ -9,7 +9,8 @@ Each silo keeps its original name and construction status as extra fields.
 Usage:
   python3 scripts/csv_to_base.py data/raw/yumen-artifacts.csv \\
       --id yumen --name Yumen --country China --prefix Y \\
-      --source "Where the CSV came from" [--status placeholder|verified]
+      --source "Where the CSV came from" [--status placeholder|verified] \\
+      [--exclude "Silo 69" ...]
 
 Standard library only. Prints warnings for duplicate coordinates.
 """
@@ -34,6 +35,13 @@ def main() -> None:
     p.add_argument("--prefix", required=True, help="silo id prefix, e.g. Y")
     p.add_argument("--source", required=True)
     p.add_argument("--status", choices=["placeholder", "verified"], default="placeholder")
+    p.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help='structure name to leave out, e.g. "Silo 69" (repeatable)',
+    )
     args = p.parse_args()
 
     silos = []
@@ -45,6 +53,9 @@ def main() -> None:
                 skipped[kind] += 1
                 continue
             name = row["Structure Number"].strip()
+            if name in args.exclude:
+                print(f"Excluding {name} (line {line})", file=sys.stderr)
+                continue
             match = re.search(r"(\d+)\s*$", name)
             if not match:
                 sys.exit(f"line {line}: can't find a number in structure name {name!r}")

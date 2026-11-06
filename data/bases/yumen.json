@@ -3,7 +3,7 @@
   "name": "Yumen",
   "country": "China",
   "dataStatus": "placeholder",
-  "source": "Project spreadsheet 'Artifacts - Yumen' (data/raw/yumen-artifacts.csv); original source to be cited. 120 silos; 27 support structures omitted. Unverified: Silo 62 and Silo 69 share identical coordinates.",
+  "source": "Project spreadsheet 'Artifacts - Yumen' (data/raw/yumen-artifacts.csv); original source to be cited. 119 silos; 27 support structures omitted. Silo 69 excluded: its coordinates duplicate Silo 62 in the spreadsheet.",
   "silos": [
     {
       "id": "Y001",
@@ -480,13 +480,6 @@
       "lon": 96.54284,
       "name": "Silo 68",
       "status": "Structure up - Dome"
-    },
-    {
-      "id": "Y069",
-      "lat": 40.03734,
-      "lon": 96.17845,
-      "name": "Silo 69",
-      "status": "First sign of construction"
     },
     {
       "id": "Y070",

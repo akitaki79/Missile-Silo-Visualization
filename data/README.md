@@ -39,6 +39,7 @@ from the dropdown. The map centres itself on the average position of your silos.
 | `country`    | Country operating the field.                                                                       |
 | `dataStatus` | `"placeholder"` if the coordinates are approximate or made up, `"verified"` if they've been checked. |
 | `source`     | Plain-text citation or URL. It's shown in the app's "Data sources" card.                           |
+| `warheadsPerSilo` | *Optional.* Warheads carried by each silo's missile, used for "surviving warheads". If you leave it out, the app uses a per-country default (China: 3, per Lawrence 2026 Table 2 / DoD estimate), otherwise 1. |
 | `silos`      | A list of silos. Each needs a unique `id` and decimal-degree `lat` / `lon`.                        |
 
 ## Rules and tips
@@ -69,6 +70,7 @@ share the same coordinates. Extra fields such as `name` and `status` are kept in
 
 ## Current files
 
-- `yumen.json`: 120 silos converted from `raw/yumen-artifacts.csv` (the "Artifacts - Yumen"
-  spreadsheet). It's marked `placeholder` until the source is cited and checked. Known issue:
-  Silo 62 and Silo 69 have identical coordinates in the spreadsheet.
+- `yumen.json`: 119 silos converted from `raw/yumen-artifacts.csv` (the "Artifacts - Yumen"
+  spreadsheet). It's marked `placeholder` until the source is cited and checked. **Silo 69 is
+  excluded** (`--exclude "Silo 69"`) because the spreadsheet gives it the same coordinates as
+  Silo 62. Add it back once corrected coordinates are available.
