@@ -55,15 +55,17 @@ export const MISSILE_PRESETS: MissilePreset[] = [
 ]
 
 export const BASEMAPS: Record<BasemapId, BasemapDef> = {
+  // CARTO Positron was the original choice, but CARTO now serves an "API KEY
+  // REQUIRED" placeholder for all keyless raster tiles. Esri's light gray canvas
+  // is the closest keyless equivalent.
   light: {
     label: 'Light',
-    tiles: ['a', 'b', 'c', 'd'].map(
-      (s) => `https://${s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png`,
-    ),
+    tiles: [
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    ],
     tileSize: 256,
-    maxzoom: 20,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    maxzoom: 16,
+    attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
   },
   satellite: {
     label: 'Satellite',
