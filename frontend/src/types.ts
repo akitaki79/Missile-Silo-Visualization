@@ -53,9 +53,11 @@ export interface SimulatorParams extends SimParams {
 }
 
 export type BasemapId = 'light' | 'satellite'
+export type ProjectionId = 'mercator' | 'globe'
 
 export interface MapOptions {
   basemap: BasemapId
+  projection: ProjectionId
   showLabels: boolean
   showRings: boolean
   showImpacts: boolean

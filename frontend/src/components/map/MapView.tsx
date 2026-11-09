@@ -1,5 +1,5 @@
 import circle from '@turf/circle'
-import type { ExpressionSpecification, StyleSpecification } from 'maplibre-gl'
+import type { ExpressionSpecification, SkySpecification, StyleSpecification } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Map, {
   Layer,
@@ -13,6 +13,7 @@ import { MapControls } from '@/components/map/MapControls'
 import { MapLegend } from '@/components/map/MapLegend'
 import {
   BASEMAPS,
+  DEFAULT_MAP_OPTIONS,
   FIT_PADDING,
   GLYPHS_URL,
   LABEL_FONT,
@@ -94,7 +95,10 @@ export function MapView({
           id: `basemap-${id}`,
           type: 'raster' as const,
           source: `basemap-${id}`,
-          layout: { visibility: id === 'light' ? ('visible' as const) : ('none' as const) },
+          layout: {
+            visibility:
+              id === DEFAULT_MAP_OPTIONS.basemap ? ('visible' as const) : ('none' as const),
+          },
         })),
       ],
     }),
@@ -219,12 +223,17 @@ export function MapView({
 
   return (
     <div
-      className={cn('relative size-full', options.greyscale && '[&_.maplibregl-canvas]:grayscale')}
+      className={cn(
+        'relative size-full bg-map-space',
+        options.greyscale && '[&_.maplibregl-canvas]:grayscale',
+      )}
     >
       <Map
         ref={mapRef}
         mapLib={maplibregl}
         mapStyle={mapStyle}
+        projection={options.projection}
+        sky={SKY}
         initialViewState={{ longitude: 0, latitude: 20, zoom: 1.5 }}
         onLoad={() => setReady(true)}
         onRotate={(e) => setBearing(e.viewState.bearing)}
@@ -379,6 +388,14 @@ export function MapView({
       {children}
     </div>
   )
+}
+
+/**
+ * Atmosphere glow around the globe (MapLibre sky). It fades out as you zoom in, where the
+ * globe blends into a flat map anyway; mercator ignores it.
+ */
+const SKY: SkySpecification = {
+  'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0],
 }
 
 /** Map paint colours come from CSS variables so the theme stays in index.css. */

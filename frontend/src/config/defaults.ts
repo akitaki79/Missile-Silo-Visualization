@@ -37,7 +37,8 @@ export const WARHEADS_PER_SILO_BY_COUNTRY: Record<string, number> = { China: 3 }
 export const DEFAULT_WARHEADS_PER_SILO = 1
 
 export const DEFAULT_MAP_OPTIONS: MapOptions = {
-  basemap: 'light',
+  basemap: 'satellite',
+  projection: 'mercator',
   showLabels: false,
   showRings: false,
   showImpacts: true,

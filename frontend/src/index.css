@@ -49,6 +49,7 @@
   --map-ring: #3f6b6e;
   --map-label: #1c1b19;
   --map-label-halo: #f7f6f3;
+  --map-space: #1d2628; /* behind the globe; mercator covers it with the basemap */
 
   /*
    * Data-viz categorical slots (validated: CVD all-pairs, light surface). Used for
@@ -87,6 +88,7 @@
   --color-viz-3: var(--viz-3);
   --color-viz-other: var(--viz-other);
   --color-map-silo: var(--map-silo);
+  --color-map-space: var(--map-space);
   --color-map-silo-destroyed: var(--map-silo-destroyed);
   --color-map-silo-untargeted: var(--map-silo-untargeted);
   --color-maroon-foreground: var(--maroon-foreground);
