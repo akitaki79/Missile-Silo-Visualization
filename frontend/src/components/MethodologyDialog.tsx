@@ -58,9 +58,10 @@ export function MethodologyDialog() {
               use. It applies to every silo, so a warhead aimed at one silo can destroy a neighbour.
               Combining it with the CEP gives the single-shot kill probability, SSKP = 1 −
               0.5^((LR/CEP)²). The optional helper computes LR from yield and silo hardness with the
-              Davis &amp; Schilling formula. That formula gives about 169 m for a 100 kt warhead
-              against 2,000 psi, while Lawrence uses 179 m. Sources differ, so you can enter LR
-              directly.
+              Davis &amp; Schilling formula. That formula gives about 171 m for a 100 kt warhead
+              against 2,000 psi, while Lawrence uses 179 m, the value given by the paper&rsquo;s
+              alternative General Electric formula for targets above 1,000 psi. Sources differ, so
+              you can enter LR directly.
             </Section>
 
             <Section title="Reliability: two kinds of failure">

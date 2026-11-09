@@ -44,8 +44,8 @@ export function pKill(tkpValue: number, n: number): number {
 
 /**
  * Expected warheads available for allocation. With reprogramming, boost failures are
- * replaced from reserves, so A = N · R_del (rounded to whole warheads, as in D&S's
- * 1,500 · 0.857 → 1,286 example).
+ * replaced from reserves, so A = T · RR = N · R_del, rounded to whole warheads (D&S p. 220;
+ * Wohlstetter's cases: 1,500 · 0.834 → 1,251 and 3,000 · 0.834 → 2,502).
  */
 export function availableWarheads(n: number, p: ReliabilityParams): number {
   return p.reprogram ? Math.round(n * p.deliveryReliability) : n

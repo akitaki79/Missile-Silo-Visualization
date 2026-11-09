@@ -42,6 +42,8 @@ describe('Davis & Schilling (1973) worked examples', () => {
     )
   })
 
+  // The paper prints 827 and 884: it rounds each term (463 + 364; 278 + 606) and uses
+  // 1,285 available warheads (1,500 × 0.857 truncated). Unrounded, the totals are 826 and 885.
   it('no reprogramming: 1,500 RVs on 1,000 targets → TKP 0.727, Pkill(2) 0.925, ≈826 destroyed', () => {
     const p = { ...rel, reprogram: false }
     const t = tkp(SSKP, p)
@@ -61,10 +63,77 @@ describe('Davis & Schilling (1973) worked examples', () => {
   })
 })
 
-describe('lethal radius from yield & hardness (Davis & Schilling)', () => {
-  it('100 kt vs 2,000 psi ≈ 169 m', () => {
-    expect(lethalRadiusM(100, 2000)).toBeCloseTo(169, 0)
+describe('Davis & Schilling (1973): reconstruction of Wohlstetter, 1,000 silos at 300 psi', () => {
+  // D&S p. 224 compute these with SSKP = 1 − .5^(6·Y^⅔ / (H^⅔·CEP²)), i.e. the truncated LR
+  // formula with coefficient √6 ≈ 2.4495. CEP 0.25 nm.
+  const truncatedLrNm = (yieldMt: number, psi: number) =>
+    (Math.sqrt(6) * Math.cbrt(yieldMt)) / Math.cbrt(psi)
+  const S = 1000
+  const destroyed = (n: number, p: Parameters<typeof tkp>[1], yieldMt: number) => {
+    const s = sskp(truncatedLrNm(yieldMt, 300), 0.25)
+    const a = availableWarheads(n, p)
+    return { s, a, killed: Math.round(S - evenSplitSurvivors(a, S, tkp(s, p))) }
+  }
+  // OAR 0.75 with no reprogramming; RR 0.834 × NRR 0.9 with reprogramming.
+  const noRep = { deliveryReliability: 1, warheadReliability: 0.75, reprogram: false }
+  const rep = { deliveryReliability: 0.834, warheadReliability: 0.9, reprogram: true }
+
+  it('case 1: 1,500 × 5 MT, SSKP 0.987 → 836 destroyed', () => {
+    const r = destroyed(1500, noRep, 5)
+    expect(r.s).toBeCloseTo(0.987, 3)
+    expect(r.killed).toBe(836)
+  })
+  it('case 2: 3,000 × 1 MT, SSKP 0.773 → 926 destroyed', () => {
+    const r = destroyed(3000, noRep, 1)
+    expect(r.s).toBeCloseTo(0.773, 3)
+    expect(r.killed).toBe(926)
+  })
+  it('case 3 (reprogramming): 1,251 available → 913 destroyed', () => {
+    const r = destroyed(1500, rep, 5)
+    expect(r.a).toBe(1251)
+    expect(r.killed).toBe(913)
+  })
+  it('case 4 (reprogramming): 2,502 available → 940 destroyed', () => {
+    const r = destroyed(3000, rep, 1)
+    expect(r.a).toBe(2502)
+    expect(r.killed).toBe(940)
+  })
+  it('Rathjens: 2,000 RVs, SSKP 0.685, OAR 0.75 → 764 destroyed', () => {
+    const t = tkp(0.685, noRep)
+    expect(Math.round(S - evenSplitSurvivors(2000, S, t))).toBe(764)
+  })
+})
+
+describe('lethal radius from yield & hardness (Davis & Schilling p. 213)', () => {
+  it('5 MT vs 300 psi: truncated first term = 0.626 nm (3,806 ft)', () => {
+    expect((2.45 * Math.cbrt(5)) / Math.cbrt(300)).toBeCloseTo(0.626, 3)
+  })
+
+  it("inverts Brode's overpressure: ΔP at the returned LR equals the hardness", () => {
+    // ΔP = 3300·Y/R³ + 192·√Y/R^(3/2), Y in MT, R in kilofeet (D&S note 9); 1 nm = 6,080 ft.
+    const brodePsi = (yieldMt: number, rNm: number) => {
+      const r = rNm * 6.08
+      return (3300 * yieldMt) / r ** 3 + (192 * Math.sqrt(yieldMt)) / r ** 1.5
+    }
+    for (const [y, h] of [
+      [0.1, 2000],
+      [5, 300],
+      [1, 50],
+    ] as const) {
+      // 0.5% tolerance: the paper rounds its coefficients to three figures.
+      expect(brodePsi(y, lethalRadiusNm(y, h)) / h).toBeCloseTo(1, 2)
+    }
+  })
+
+  it('100 kt vs 2,000 psi ≈ 171 m', () => {
+    expect(lethalRadiusM(100, 2000)).toBeCloseTo(171.4, 0)
     expect(lethalRadiusNm(0.1, 2000) * 1852).toBeCloseTo(lethalRadiusM(100, 2000), 9)
+  })
+
+  it("Lawrence's 179 m (W76) and 296 m (W88) match D&S's GE formula for H > 1,000 psi", () => {
+    const geNm = (yieldMt: number, psi: number) => (2.62 * Math.cbrt(yieldMt)) / Math.cbrt(psi)
+    expect(geNm(0.1, 2000) * 1852).toBeCloseTo(179, 0)
+    expect(geNm(0.455, 2000) * 1852).toBeCloseTo(296, 0)
   })
 })
 

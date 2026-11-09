@@ -46,7 +46,7 @@ Other scripts: `npm test` (Vitest), `npm run build`, `npm run lint`, `npm run fo
 `npm run preview`.
 
 The tests check the simulation against the papers' worked numbers (SSKP/TKP from Lawrence
-Table 3, Davis & Schilling's 826 / 885 destroyed examples, the 169 m lethal-radius formula), that
+Table 3, Davis & Schilling's worked examples and Wohlstetter reconstructions, the lethal-radius formula checked against Brode), that
 Monte Carlo agrees with the analytic model, kill-rule edge cases, seed reproducibility, and that
 every base file has unique silos at least 1 km apart.
 

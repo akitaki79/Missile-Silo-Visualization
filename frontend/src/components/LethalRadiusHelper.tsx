@@ -48,11 +48,12 @@ export function LethalRadiusHelper({ onUse }: { onUse: (lrM: number) => void }) 
           />
         </div>
         <p className="rounded-md bg-muted/70 p-2 font-mono text-[0.6875rem] leading-relaxed">
-          LR = 2.45·Y^⅓ / H^⅓ · (√(1 + 2.79/H + 1.67/√H))^⅔ nm
+          LR = 2.45·Y^⅓ / H^⅓ · (√(1 + 2.79/H) + 1.67/√H)^⅔ nm
         </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Gives ≈169 m for 100 kt at 2,000 psi, while Lawrence (2026) uses 179 m. Sources give
-          different lethal radii, so the direct input remains the default.
+          Gives ≈171 m for 100 kt at 2,000 psi, while Lawrence (2026) uses 179 m (which matches
+          D&amp;S&rsquo;s alternative GE formula for H &gt; 1,000 psi). Sources give different
+          lethal radii, so the direct input remains the default.
         </p>
         <Button
           disabled={lr === null}
